@@ -123,7 +123,8 @@ public class PlateServiceImpl implements IPlateService {
 
 	@Override
 	public Optional<Person> findByNumber(String number, String checkType) {
-
+		
+		number = "^"+number+"$";
 		Optional<Person> person = personsRepository.findByNumber(number);
 		if (person.isPresent() && checkType.equals("lookup")) {
 			addVehicleLogs(person.get(), number, "in");

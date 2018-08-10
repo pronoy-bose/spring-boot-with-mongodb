@@ -11,6 +11,6 @@ import com.osi.vehicle_access.model.Person;
 @Repository
 public interface PersonsRepository extends MongoRepository<Person, String> {
 
-	@Query("{'vehicle_numbers.number': ?0}")
+	@Query("{'vehicle_numbers.number': { $regex: ?0, $options:'i' }}")
 	Optional<Person> findByNumber(String number);
 }
