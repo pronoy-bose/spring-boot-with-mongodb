@@ -32,7 +32,6 @@ public class PlateServiceImpl implements IPlateService {
 	private VehicleLogRepository vehicleLogRepository;
 	@Autowired
 	private BuildingRepository buildingRepository;
-	
 
 	@Override
 	public Map<String, String> managePlateData(Map<String, Object> plateData, String vehiclePosition) {
@@ -82,23 +81,21 @@ public class PlateServiceImpl implements IPlateService {
 					vehicleLog.setVehicleType(vehicleNumbers.getType());
 				}
 			}
-//			String buildingId = updateParkingSlot(vehicleLog.getVehicleType(), "IN");
-//			vehicleLog.setBuildingId(buildingId);
-//			vehicleLog.setInTime(new Date());
 
 			// Setting old vehicle logs to out
-			List<VehicleLog> oldVehicleLogs = vehicleLogRepository.findAllByPersonIdAndVehicleNumber(person.getId(),
-					number);
+			List<VehicleLog> oldVehicleLogs = vehicleLogRepository
+					.findAllByPersonIdAndVehicleNumberAndStatus(person.getId(), number, "IN");
 			for (VehicleLog oldVehicleLog : oldVehicleLogs) {
-				if (oldVehicleLog.getOutTime().toString()
-						.equals(getDate("E MMM dd HH:mm:ss Z yyyy", "Fri Jan 01 12:00:00 UTC 1971").toString())) {
-					oldVehicleLog.setOutTime(new Date());
-					oldVehicleLog.setStatus("OUT");
-					vehicleLogRepository.save(oldVehicleLog);
-					updateParkingSlot(vehicleLog.getVehicleType(), "OUT");
-				}
+				// if (oldVehicleLog.getOutTime().toString()
+				// .equals(getDate("E MMM dd HH:mm:ss Z yyyy", "Fri Jan 01
+				// 12:00:00 UTC 1971").toString())) {
+				oldVehicleLog.setOutTime(new Date());
+				oldVehicleLog.setStatus("OUT");
+				vehicleLogRepository.save(oldVehicleLog);
+				updateParkingSlot(vehicleLog.getVehicleType(), "OUT");
+				// }
 			}
-			
+
 			String buildingId = updateParkingSlot(vehicleLog.getVehicleType(), "IN");
 			vehicleLog.setBuildingId(buildingId);
 			vehicleLog.setInTime(new Date());
@@ -111,14 +108,16 @@ public class PlateServiceImpl implements IPlateService {
 
 	public void updateOutTimeForLog(String personId, String number) {
 
-		List<VehicleLog> vehicleLogs = vehicleLogRepository.findAllByPersonIdAndVehicleNumber(personId, number);
+		List<VehicleLog> vehicleLogs = vehicleLogRepository.findAllByPersonIdAndVehicleNumberAndStatus(personId, number,
+				"IN");
 		for (VehicleLog vehicleLog : vehicleLogs) {
-			if (vehicleLog.getOutTime().toString()
-					.equals(getDate("E MMM dd HH:mm:ss Z yyyy", "Fri Jan 01 12:00:00 UTC 1971").toString())) {
-				vehicleLog.setOutTime(new Date());
-				vehicleLog.setStatus("OUT");
-				vehicleLogRepository.save(vehicleLog);
-			}
+			// if (vehicleLog.getOutTime().toString()
+			// .equals(getDate("E MMM dd HH:mm:ss Z yyyy", "Fri Jan 01 12:00:00
+			// UTC 1971").toString())) {
+			vehicleLog.setOutTime(new Date());
+			vehicleLog.setStatus("OUT");
+			vehicleLogRepository.save(vehicleLog);
+			// }
 		}
 	}
 
@@ -175,7 +174,6 @@ public class PlateServiceImpl implements IPlateService {
 		}
 		return buildingId;
 	}
-
 
 	public Date getDate(String pattern, String dateValue) {
 
