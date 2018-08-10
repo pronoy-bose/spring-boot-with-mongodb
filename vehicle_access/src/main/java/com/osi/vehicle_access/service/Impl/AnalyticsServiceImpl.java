@@ -284,7 +284,7 @@ public class AnalyticsServiceImpl implements IAnalyticsService {
 		HashMap<Integer, Integer> othersParkingDurationData = new HashMap<Integer, Integer>();
 
 		// Initializing each key with 0 to have 0 for durations not present
-		for (int i = 1; i <= 9; i++) {
+		for (int i = 0; i <= 9; i++) {
 			employeeParkingDurationData.put(i, 0);
 			visitorParkingDurationData.put(i, 0);
 			othersParkingDurationData.put(i, 0);
