@@ -11,9 +11,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoOperations;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
+import org.springframework.data.mongodb.core.aggregation.ArithmeticOperators.Divide;
+import org.springframework.data.mongodb.core.aggregation.ArithmeticOperators.Floor;
+import org.springframework.data.mongodb.core.aggregation.ArithmeticOperators.Subtract;
+import org.springframework.data.mongodb.core.aggregation.GroupOperation;
+import org.springframework.data.mongodb.core.aggregation.LookupOperation;
+import org.springframework.data.mongodb.core.aggregation.ProjectionOperation;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.stereotype.Service;
 
+import com.osi.vehicle_access.aggregationMappers.AvgParkingDuration;
+import com.osi.vehicle_access.aggregationMappers.AvgParkingDurationResponse;
 import com.osi.vehicle_access.aggregationMappers.LastSevenDayMetrics;
 import com.osi.vehicle_access.aggregationMappers.PeriodicalParking;
 import com.osi.vehicle_access.aggregationMappers.VehiclesByDuration;
@@ -169,8 +177,8 @@ public class AnalyticsServiceImpl implements IAnalyticsService {
 				lastSevenDayDates.get("dayBegin").toString().concat(" 00:00:00"));
 		Date lastSevenDaysEndDate = dateRangeUtils.getDate("yyyy-MM-dd hh:mm:ss",
 				lastSevenDayDates.get("dayEnd").toString().concat(" 23:59:59"));
-		
-		//Get the results from mongodb
+
+		// Get the results from mongodb
 		AggregationOperation match = Aggregation
 				.match(Criteria.where("in_time").lt(lastSevenDaysEndDate).gt(lastSevenDaysStartDate));
 
@@ -178,12 +186,11 @@ public class AnalyticsServiceImpl implements IAnalyticsService {
 				Aggregation.project().andExpression("vehicle_type").as("type").andExpression("dayOfMonth(in_time)")
 						.as("duration"),
 				Aggregation.group(Aggregation.fields().and("duration").and("type")).count().as("count"));
-		
-		
+
 		List<VehiclesByDuration> lastSevenDaysData = mongoOperations
 				.aggregate(lastSevenDaysAgg, "vehicleLog", VehiclesByDuration.class).getMappedResults();
-		
-		//Get List of dates for the past seven days
+
+		// Get List of dates for the past seven days
 		List<LocalDate> lastSevenDaysDateList = dateRangeUtils.getDatesBetween(
 				lastSevenDaysStartDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate(),
 				lastSevenDaysEndDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
@@ -191,17 +198,17 @@ public class AnalyticsServiceImpl implements IAnalyticsService {
 		HashMap<Integer, String> dateToDayMap = new HashMap<Integer, String>();
 		HashMap<Integer, Integer> carDateDataMap = new HashMap<Integer, Integer>();
 		HashMap<Integer, Integer> bikeDateDataMap = new HashMap<Integer, Integer>();
-		
-		//Creating map for car counts,bike counts and initializing them to 0
-		//Creating a mapping for the date value and the day it represents
+
+		// Creating map for car counts,bike counts and initializing them to 0
+		// Creating a mapping for the date value and the day it represents
 		for (LocalDate dateData : lastSevenDaysDateList) {
 			dateToDayMap.put(dateData.getDayOfMonth(), dateData.getDayOfWeek().name());
 			carDateDataMap.put(dateData.getDayOfMonth(), 0);
 			bikeDateDataMap.put(dateData.getDayOfMonth(), 0);
 		}
-		
-		//Adding the counts present for a day to the respective maps.
-		//Counts not present for a date will be 0
+
+		// Adding the counts present for a day to the respective maps.
+		// Counts not present for a date will be 0
 		for (VehiclesByDuration vehicleData : lastSevenDaysData) {
 			if (vehicleData.getType().equalsIgnoreCase("car")) {
 				carDateDataMap.put(vehicleData.getDuration(), vehicleData.getCount());
@@ -209,8 +216,8 @@ public class AnalyticsServiceImpl implements IAnalyticsService {
 				bikeDateDataMap.put(vehicleData.getDuration(), vehicleData.getCount());
 			}
 		}
-		
-		//Mapping to the day values as key in place of the date
+
+		// Mapping to the day values as key in place of the date
 		HashMap<String, Integer> carDayDataMap = new HashMap<String, Integer>();
 		HashMap<String, Integer> bikeDayDataMap = new HashMap<String, Integer>();
 
@@ -220,22 +227,109 @@ public class AnalyticsServiceImpl implements IAnalyticsService {
 		for (Integer key : bikeDateDataMap.keySet()) {
 			bikeDayDataMap.put(dateToDayMap.get(key), bikeDateDataMap.get(key));
 		}
-		
-		//Creating a list of days in sequence as the above maps created is shuffling the days
+
+		// Creating a list of days in sequence as the above maps created is
+		// shuffling the days
 		List<String> daysSequence = new ArrayList<String>();
-		for(String days:dateToDayMap.values()){
+		for (String days : dateToDayMap.values()) {
 			daysSequence.add(days);
 		}
-		
-		//Putting the data in a model to send as a resposne
+
+		// Putting the data in a model to send as a resposne
 		LastSevenDayMetrics lastSevenDayMetrics = new LastSevenDayMetrics();
 		lastSevenDayMetrics.setDaySequence(daysSequence);
 		lastSevenDayMetrics.setCarDayDataMap(carDayDataMap);
 		lastSevenDayMetrics.setBikeDayDataMap(bikeDayDataMap);
 		return lastSevenDayMetrics;
 	}
-	
-	//Common method for getPeriodicalParkingSummary() and getLastThreeMonthsSummary()
+
+	public AvgParkingDurationResponse getAvgParkingDuration() {
+		// Get current month date range
+		DateRangeUtils dateRangeUtils = new DateRangeUtils();
+		HashMap<String, LocalDate> thisMonthDates = dateRangeUtils.getThisMonthDates();
+		Date thisMonthStartDate = dateRangeUtils.getDate("yyyy-MM-dd hh:mm:ss",
+				thisMonthDates.get("thisMonthBegin").toString().concat(" 00:00:00"));
+		Date thisMonthEndDate = dateRangeUtils.getDate("yyyy-MM-dd hh:mm:ss",
+				thisMonthDates.get("thisMonthEnd").toString().concat(" 23:59:59"));
+		// End
+
+		// Aggregation for getting the current month parking duration count
+		// grouped by type of employee and the count
+		// Two collections are being looked up : persons and vehicleLog
+		AggregationOperation match = Aggregation.match(Criteria.where("in_time").lt(thisMonthEndDate)
+				.gt(thisMonthStartDate).andOperator(Criteria.where("status").is("OUT")));
+
+		LookupOperation lookupOperation = LookupOperation.newLookup().from("persons").localField("person_id")
+				.foreignField("_id").as("personDetails");
+
+		Floor floor = Floor.floorValueOf(Divide.valueOf("diff_msecs").divideBy(1000 * 60 * 60));
+		ProjectionOperation project1 = Aggregation.project("in_time", "out_time").and("personDetails").as("person")
+				.and(Subtract.valueOf("out_time").subtract("in_time")).as("diff_msecs");
+		ProjectionOperation project2 = Aggregation.project("in_time", "out_time").and("person.type").as("type")
+				.and(floor).as("duration");
+
+		GroupOperation groupOperation = Aggregation.group("duration", "type").count().as("count");
+
+		Aggregation aggregation = Aggregation.newAggregation(match, lookupOperation, project1, project2,
+				groupOperation);
+		// End
+		// Assigning to a predefined class to be mapped by mongodb
+		List<AvgParkingDuration> avgParkingDurationList = mongoOperations
+				.aggregate(aggregation, "vehicleLog", AvgParkingDuration.class).getMappedResults();
+
+		// Creating maps for Employee,Visitor and others to get their repective
+		// duration count
+		HashMap<Integer, Integer> employeeParkingDurationData = new HashMap<Integer, Integer>();
+		HashMap<Integer, Integer> visitorParkingDurationData = new HashMap<Integer, Integer>();
+		HashMap<Integer, Integer> othersParkingDurationData = new HashMap<Integer, Integer>();
+
+		// Initializing each key with 0 to have 0 for durations not present
+		for (int i = 1; i <= 9; i++) {
+			employeeParkingDurationData.put(i, 0);
+			visitorParkingDurationData.put(i, 0);
+			othersParkingDurationData.put(i, 0);
+		}
+
+		// If count > 8 putting cumulative count into key 9
+		for (AvgParkingDuration avgParkingDurationData : avgParkingDurationList) {
+			if (avgParkingDurationData.getType().equalsIgnoreCase("employee")) {
+				if (avgParkingDurationData.getDuration() > 8) {
+					employeeParkingDurationData.put(9,
+							employeeParkingDurationData.get(9) + avgParkingDurationData.getCount());
+				} else {
+					employeeParkingDurationData.put(avgParkingDurationData.getDuration(),
+							avgParkingDurationData.getCount());
+				}
+			} else if (avgParkingDurationData.getType().equalsIgnoreCase("visitor")) {
+				if (avgParkingDurationData.getDuration() > 8) {
+					visitorParkingDurationData.put(9,
+							visitorParkingDurationData.get(9) + avgParkingDurationData.getCount());
+				} else {
+					visitorParkingDurationData.put(avgParkingDurationData.getDuration(),
+							avgParkingDurationData.getCount());
+				}
+			} else {
+				if (avgParkingDurationData.getDuration() > 8) {
+					othersParkingDurationData.put(9,
+							othersParkingDurationData.get(9) + avgParkingDurationData.getCount());
+				} else {
+					othersParkingDurationData.put(avgParkingDurationData.getDuration(),
+							avgParkingDurationData.getCount());
+				}
+			}
+		}
+
+		// Adding the calculated fields to a response specific object
+		AvgParkingDurationResponse avgParkingDurationResponse = new AvgParkingDurationResponse();
+		avgParkingDurationResponse.setEmployeeParkingDurationData(employeeParkingDurationData);
+		avgParkingDurationResponse.setVisitorParkingDurationData(visitorParkingDurationData);
+		avgParkingDurationResponse.setOthersParkingDurationData(othersParkingDurationData);
+
+		return avgParkingDurationResponse;
+	}
+
+	// Common method for getPeriodicalParkingSummary() and
+	// getLastThreeMonthsSummary()
 	public Aggregation getPeriodicCountAggregation(Date startDate, Date endDate) {
 		AggregationOperation match = Aggregation.match(Criteria.where("in_time").lt(endDate).gt(startDate));
 		Aggregation parkingAgg = Aggregation.newAggregation(match,
@@ -244,8 +338,9 @@ public class AnalyticsServiceImpl implements IAnalyticsService {
 
 		return parkingAgg;
 	}
-	
-	//Common method for getPeriodicalParkingSummary() and getLastThreeMonthsSummary()
+
+	// Common method for getPeriodicalParkingSummary() and
+	// getLastThreeMonthsSummary()
 	public HashMap<String, Integer> getMapForVehicleCount(List<PeriodicalParking> vehicleCountList) {
 		HashMap<String, Integer> vehicleCountMap = new HashMap<String, Integer>();
 		vehicleCountMap.put("car", 0);

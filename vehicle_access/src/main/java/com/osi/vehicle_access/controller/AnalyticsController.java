@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.osi.vehicle_access.aggregationMappers.AvgParkingDurationResponse;
 import com.osi.vehicle_access.aggregationMappers.LastSevenDayMetrics;
 import com.osi.vehicle_access.service.Impl.AnalyticsServiceImpl;
 
@@ -35,6 +36,12 @@ public class AnalyticsController {
 	public ResponseEntity<LastSevenDayMetrics> getLastSevenDaysTrend() {
 		LastSevenDayMetrics lastSevenDayMetrics = analyticsService.getLastSevenDaysTrend();
 		return new ResponseEntity<LastSevenDayMetrics>(lastSevenDayMetrics, HttpStatus.OK);
+	}
+
+	@RequestMapping("/getAvgParkingDuration")
+	public ResponseEntity<AvgParkingDurationResponse> getAvgParkingDuration() {
+		AvgParkingDurationResponse avgParkingDurationResponse = analyticsService.getAvgParkingDuration();
+		return new ResponseEntity<AvgParkingDurationResponse>(avgParkingDurationResponse, HttpStatus.OK);
 	}
 
 }
