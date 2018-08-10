@@ -1,5 +1,6 @@
 package com.osi.vehicle_access.controller;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -17,7 +18,7 @@ import com.osi.vehicle_access.model.Person;
 import com.osi.vehicle_access.service.Impl.PlateServiceImpl;
 
 @RestController
-@CrossOrigin(origins="http://localhost:4200", allowedHeaders = "*")
+@CrossOrigin(origins = "http://localhost:4200", allowedHeaders = "*")
 public class PlateController {
 	@Autowired
 	private PlateServiceImpl plateService;
@@ -44,6 +45,12 @@ public class PlateController {
 			return new ResponseEntity<Map<String, String>>(authCheck, HttpStatus.OK);
 		}
 
+	}
+
+	@RequestMapping(value = "checkParkingStatus", method = RequestMethod.GET)
+	public ResponseEntity<HashMap<String, Boolean>> checkParkingStatus() {
+		HashMap<String, Boolean> parkingStatus = plateService.checkParkingStatus();
+		return new ResponseEntity<HashMap<String, Boolean>>(parkingStatus, HttpStatus.OK);
 	}
 
 }

@@ -54,5 +54,9 @@ export class PlateDetailsService {
   getVehiclesCountByHour():Observable<any>{
     return this.http.get('http://192.168.108.21:8080/vehicle_access/getVehiclesParkedByHour');
   }
+
+  getParkingFullStatus():Observable<any>{
+    return this.http.get('http://192.168.108.21:8080/vehicle_access/checkParkingStatus');
+  }
   
 }

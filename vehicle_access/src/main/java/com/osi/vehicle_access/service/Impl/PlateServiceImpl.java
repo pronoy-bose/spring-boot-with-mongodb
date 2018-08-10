@@ -12,8 +12,13 @@ import java.util.Optional;
 import java.util.TimeZone;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
+import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.stereotype.Component;
 
+import com.osi.vehicle_access.aggregationMappers.RibbonData;
 import com.osi.vehicle_access.model.Building;
 import com.osi.vehicle_access.model.Person;
 import com.osi.vehicle_access.model.VehicleLog;
@@ -22,6 +27,7 @@ import com.osi.vehicle_access.repository.BuildingRepository;
 import com.osi.vehicle_access.repository.PersonsRepository;
 import com.osi.vehicle_access.repository.VehicleLogRepository;
 import com.osi.vehicle_access.service.IPlateService;
+import com.osi.vehicle_access.utils.DateRangeUtils;
 
 @Component
 public class PlateServiceImpl implements IPlateService {
@@ -32,6 +38,8 @@ public class PlateServiceImpl implements IPlateService {
 	private VehicleLogRepository vehicleLogRepository;
 	@Autowired
 	private BuildingRepository buildingRepository;
+	@Autowired
+	private MongoOperations mongoOperations;
 
 	@Override
 	public Map<String, String> managePlateData(Map<String, Object> plateData, String vehiclePosition) {
@@ -69,6 +77,7 @@ public class PlateServiceImpl implements IPlateService {
 	}
 
 	public void addVehicleLogs(Person person, String number, String vehiclePosition) {
+		DateRangeUtils dateRangeUtils = new DateRangeUtils();
 		if (vehiclePosition.equalsIgnoreCase("out")) {
 			updateOutTimeForLog(person.getId(), number);
 		} else if (vehiclePosition.equalsIgnoreCase("in")) {
@@ -99,7 +108,7 @@ public class PlateServiceImpl implements IPlateService {
 			String buildingId = updateParkingSlot(vehicleLog.getVehicleType(), "IN");
 			vehicleLog.setBuildingId(buildingId);
 			vehicleLog.setInTime(new Date());
-			vehicleLog.setOutTime(getDate("yyyy-MM-dd HH:mm:ss", "1971-01-01 12:00:00"));
+			vehicleLog.setOutTime(dateRangeUtils.getDate("yyyy-MM-dd HH:mm:ss", "1971-01-01 12:00:00"));
 			vehicleLog.setStatus("IN");
 			vehicleLogRepository.save(vehicleLog);
 		}
@@ -123,9 +132,9 @@ public class PlateServiceImpl implements IPlateService {
 
 	@Override
 	public Optional<Person> findByNumber(String number, String checkType) {
-		
-		number = "^"+number+"$";
-		Optional<Person> person = personsRepository.findByNumber(number);
+
+		String regexNumber = "^" + number + "$";
+		Optional<Person> person = personsRepository.findByNumber(regexNumber);
 		if (person.isPresent() && checkType.equals("lookup")) {
 			addVehicleLogs(person.get(), number, "in");
 		}
@@ -133,7 +142,7 @@ public class PlateServiceImpl implements IPlateService {
 	}
 
 	public String updateParkingSlot(String vehicleType, String direction) {
-		List<Building> buildingList = buildingRepository.findAll();
+		List<Building> buildingList = buildingRepository.findAllByName("^OSI ConsultinG Pvt Ltd$");
 		String buildingId = "";
 		for (Building building : buildingList) {
 			if (vehicleType.equalsIgnoreCase("car")) {
@@ -176,18 +185,29 @@ public class PlateServiceImpl implements IPlateService {
 		return buildingId;
 	}
 
-	public Date getDate(String pattern, String dateValue) {
+	@Override
+	public HashMap<String, Boolean> checkParkingStatus() {
 
-		TimeZone timeZone = TimeZone.getTimeZone("UTC");
-		Date dateVal = null;
-		DateFormat formatter = new SimpleDateFormat(pattern);
-		formatter.setTimeZone(timeZone);
-		try {
-			dateVal = formatter.parse(dateValue);
-		} catch (ParseException e) {
-			System.out.println("Error");
+		AggregationOperation buildingFilter = Aggregation.match(Criteria.where("name").is("OSI Consulting Pvt Ltd"));
+		Aggregation aggregation = Aggregation.newAggregation(buildingFilter,
+				Aggregation.group("name").sum("total_car_slots").as("totalCarParking").sum("total_bike_slots")
+						.as("totalBikeParking").sum("remaining_car_slots").as("availableCarParking")
+						.sum("remaining_bike_slots").as("availableBikeParking"));
+
+		List<RibbonData> parkingDataList = mongoOperations.aggregate(aggregation, "buildings", RibbonData.class)
+				.getMappedResults();
+		HashMap<String, Boolean> parkingStatusMap = new HashMap<String, Boolean>();
+		parkingStatusMap.put("carParking", false);
+		parkingStatusMap.put("bikeParking", false);
+		for (RibbonData parkingData : parkingDataList) {
+			if (parkingData.getAvailableBikeParking() == 0) {
+				parkingStatusMap.put("bikeParking", true);
+			}
+			if (parkingData.getAvailableCarParking() == 0) {
+				parkingStatusMap.put("carParking", true);
+			}
 		}
-		return dateVal;
-	}
+		return parkingStatusMap;
 
+	}
 }
