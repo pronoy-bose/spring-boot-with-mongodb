@@ -290,7 +290,7 @@ public class AnalyticsServiceImpl implements IAnalyticsService {
 			othersParkingDurationData.put(i, 0);
 		}
 
-		// If count > 8 putting cumulative count into key 9
+		// If number of hours > 8 putting cumulative count into key 9
 		for (AvgParkingDuration avgParkingDurationData : avgParkingDurationList) {
 			if (avgParkingDurationData.getType().equalsIgnoreCase("employee")) {
 				if (avgParkingDurationData.getDuration() > 8) {
