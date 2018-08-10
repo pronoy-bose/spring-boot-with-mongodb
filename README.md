@@ -7,6 +7,6 @@ Or follow that data format to check results
 
 
 ## Url to hit
-### http://localhost:8080/getPlateDetails?checkType=lookup&vehicleNumber=TS09EM4567 creates log entry into vehicleLog collection
-### http://localhost:8080/getPlateDetails?checkType=check&vehicleNumber=TS09EM4567 only checks presence no log created
-### Most of the aggregation are on vehicleLog collection. So create the logs.
+#### http://localhost:8080/getPlateDetails?checkType=lookup&vehicleNumber=TS09EM4567 creates log entry into vehicleLog collection
+#### http://localhost:8080/getPlateDetails?checkType=check&vehicleNumber=TS09EM4567 only checks presence no log created
+##### Put the vehicleLogs collection by changin the dates in the data models
