@@ -88,7 +88,7 @@ public class DashboardServiceImpl implements IDashboardService {
 
 		// Aggregation to get the number of cars in 'IN' status for current day
 		AggregationOperation match = Aggregation.match(
-				Criteria.where("in_time").lt(endDate).gt(startDate).andOperator(Criteria.where("status").is("OUT")));
+				Criteria.where("in_time").lt(endDate).gt(startDate).andOperator(Criteria.where("status").is("IN")));
 
 		Aggregation currentDayRibbonAgg = Aggregation.newAggregation(match,
 				Aggregation.project().andExpression("vehicle_type").as("type").andExpression("dayOfMonth(in_time)")
@@ -122,7 +122,7 @@ public class DashboardServiceImpl implements IDashboardService {
 				dateRangeUtils.getTodayDates().get("todayEnd").toString().replaceFirst("T", " ").concat(":00"));
 
 		AggregationOperation match = Aggregation.match(
-				Criteria.where("in_time").lt(endDate).gt(startDate).andOperator(Criteria.where("status").is("OUT")));
+				Criteria.where("in_time").lt(endDate).gt(startDate).andOperator(Criteria.where("status").is("IN")));
 
 		Aggregation vehiclesParkedByHourAgg = Aggregation.newAggregation(match,
 				Aggregation.project().andExpression("vehicle_type").as("type").andExpression("hour(in_time)")
