@@ -3,8 +3,8 @@ import { NgForm } from '@angular/forms';
 import { PlateDetailsService } from '../plate-details.service';
 
 class VehicleDetail {
-  vehicleType?= '';
-  vehicleNumber?= '';
+  type?= '';
+  number?= '';
 }
 class Flash {
   message: string;

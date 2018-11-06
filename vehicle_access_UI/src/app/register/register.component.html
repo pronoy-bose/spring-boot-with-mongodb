@@ -186,17 +186,17 @@
                   <tr *ngFor="let vehicleDetail of vehicleDetailsFields;let i=index; trackBy: trackByFn">
                     <td>
                       <div class="input-group input-sm">
-                        <select class="custom-select mr-sm-2 form-field-border" name="inputVehicleType{{i}}" id="inputVehicleType{{i}}" [(ngModel)]="vehicleDetail.vehicleType"
+                        <select class="custom-select mr-sm-2 form-field-border" name="inputVehicleType{{i}}" id="inputVehicleType{{i}}" [(ngModel)]="vehicleDetail.type"
                           required>
                           <option value="" selected>Select</option>
-                          <option value="1">Car</option>
-                          <option value="2">Bike</option>
+                          <option value="Car">Car</option>
+                          <option value="Bike">Bike</option>
                         </select>
                       </div>
                     </td>
                     <td>
                       <input type="text" class="form-control input-sm form-field-border" name="inputVehicleNumber{{i}}" id="inputVehicleNumber{{i}}"
-                        placeholder="Vehicle Number" [(ngModel)]="vehicleDetail.vehicleNumber" required>
+                        placeholder="Vehicle Number" [(ngModel)]="vehicleDetail.number" required>
                     </td>
                     <td>
                       <i class="material-icons md-30" (click)="removeMenu(i)" *ngIf="vehicleDetailsFields.length!=1">remove_circle_outline</i>
@@ -211,9 +211,9 @@
                   <select class="custom-select input-sm mr-sm-2 form-field-border" name="inputPersonType" id="inputPersonType" [(ngModel)]="person.type"
                     required>
                     <option value="" selected>Select</option>
-                    <option value="2">Employee</option>
-                    <option value="3">Visitor</option>
-                    <option value="3">Others</option>
+                    <option value="Employee">Employee</option>
+                    <option value="Visitor">Visitor</option>
+                    <option value="Others">Others</option>
                   </select>
                 </div>
                 <div class="form-group col-md-6">

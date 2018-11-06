@@ -172,6 +172,7 @@ export class DashboardComponent implements OnInit {
         data: this.parkingDurationBikeDataSet
       }]
     });
+    // this.stackchart.options.plotOptions.series.events.click = (event) => console.log(event);
   }
 
   renderBarChart() {
